@@ -4,7 +4,7 @@ Version: 5.4.302-kekse+
 Boot image SHA-256: 7c6199a99552ade128197ac1992e16e8baa59b17e3d2eb5ab648501dd7286bf3
 
 This is an unofficial community kernel built from the Bocchi-The-Dev kernel fork with
-SukiSU Ultra integrated. SukiSU itself is NOT shipped in this release; build requires
+SukiSU Ultra integrated. Build requires
 an external SukiSU builtin checkout pinned at:
 
 - repo: SukiSU-Ultra/SukiSU-Ultra
@@ -20,10 +20,14 @@ Compile-time optimizations actually applied:
 - stock module compatibility patch: vermagic/CRC mismatches become warnings
 
 Known-good device flashing:
-  fastboot flash boot boot-image/boot-SukiSU-X6525.img (64MiB image)
-
-Rollback:
-  fastboot flash boot /path/to/boot_stock.img
+  fastboot flash boot boot-image/SUKISU-Kekse.img (64MiB image)
 
 The matching SukiSU manager used for this release is external and must be installed
 separately. Keep the stock boot image outside the repository to avoid bloating commits.
+
+Updating this release:
+1. pull/update source on main and bump CONFIG_LOCALVERSION
+2. repeat build + repack commands, KEEP the same toolchain
+3. update SHA256SUMS and a release notes diff
+4. create a new tag (v5.4.302-kekse.N+1), do not recycle old ones
+5. push main + tags, then upload the new image to that release
