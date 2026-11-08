@@ -1,11 +1,12 @@
-# X6525_Kernel-Kekse
+# Kernel-Kekse
 
-This is **my** custom X6525 / Infinix Smart 8 (UMS9230) SukiSU kernel release.
-It is unofficial: I rebuilt it from a community transsion source and added SukiSU Ultra, then
-tuned it with -O3, monolithic LTO, and CFI for speed and a cleaner memory layout. If you
-only want a boot image, use `boot-image/SUKISU-Kekse.img`; the source side is still here
-so anyone can inspect the changes, but the KernelSU core itself is intentionally omitted and
-must be imported separately.
+This is the X6525 / Infinix Smart 8 UMS9230 SukiSU kernel release, configured for
+the optimized and monolithic LTO build.
+
+The kernel source is derived from the community transsion UMS9230 tree. Node-level
+SukiSU sources are intentionally not bundled (see `src/INTEGRATE_SUKISU.md`). To
+get running quickly, use `boot-image/SUKISU-Kekse.img`; the build recipes, patches
+and reproducibility settings are all here.
 
 ## Key artifact
 
