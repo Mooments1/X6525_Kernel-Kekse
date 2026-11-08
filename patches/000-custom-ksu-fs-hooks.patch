@@ -1,0 +1,184 @@
+diff --git a/arch/arm64/configs/bg6_defconfig b/arch/arm64/configs/bg6_defconfig
+index 5d7fa62d2..cd0b46bc8 100644
+--- a/arch/arm64/configs/bg6_defconfig
++++ b/arch/arm64/configs/bg6_defconfig
+@@ -22,9 +22,9 @@ CONFIG_THREAD_INFO_IN_TASK=y
+ #
+ CONFIG_INIT_ENV_ARG_LIMIT=32
+ # CONFIG_COMPILE_TEST is not set
+-CONFIG_UAPI_HEADER_TEST=y
+-CONFIG_LOCALVERSION="-NovaKernel"
+-CONFIG_LOCALVERSION_AUTO=y
++# CONFIG_UAPI_HEADER_TEST is not set
++CONFIG_LOCALVERSION="-kekse"
++# CONFIG_LOCALVERSION_AUTO is not set
+ CONFIG_BUILD_SALT=""
+ CONFIG_DEFAULT_HOSTNAME="(none)"
+ CONFIG_SWAP=y
+@@ -6502,10 +6502,12 @@ CONFIG_CORESIGHT_STM=y
+ # CONFIG_SPRD_SHARKL6PRO_CORESIGHT_PHY is not set
+ # end of Coresight Physical Layer drivers
+ # end of Kernel hacking
+-# KernelSU (xxksu, backslashxx)
++# SukiSU-Ultra (builtin backend, in-tree hooks)
+ CONFIG_KSU=y
+-CONFIG_KSU_ENABLE_FULL_UID_CHECKS=y
+-CONFIG_KSU_HACK_ARM64_BRANCH_LINK=y
++CONFIG_KSU_FEATURE_ADBROOT=y
++# CONFIG_KSU_DEBUG is not set
++# CONFIG_KPM is not set
++# CONFIG_KSU_SUSFS is not set
+ # cgroup v2
+ #
+ # There is no CONFIG_CGROUP2 in 5.4 and never was: the v2 (unified) hierarchy
+diff --git a/fs/exec.c b/fs/exec.c
+index 3453c155d..469c22f0f 100644
+--- a/fs/exec.c
++++ b/fs/exec.c
+@@ -1924,16 +1924,12 @@ static int __do_execve_file(int fd, struct filename *filename,
+ 	return retval;
+ }
+ 
+-#ifdef CONFIG_KSU_SUSFS
+-extern struct static_key_true ksu_su_compat_enabled;
+-extern struct static_key_true susfs_is_sdcard_android_data_not_decrypted;
+-extern bool __ksu_is_allow_uid_for_current(uid_t uid);
++#ifdef CONFIG_KSU
++extern bool ksu_execveat_hook __read_mostly;
+ extern int ksu_handle_execveat(int *fd, struct filename **filename_ptr, void *argv,
+ 			void *envp, int *flags);
+ extern int ksu_handle_execveat_sucompat(int *fd, struct filename **filename_ptr, void *argv,
+ 				void *envp, int *flags);
+-extern int ksu_handle_post_execveat_sucompat(int *fd, struct filename **filename_ptr, void *argv,
+-				void *envp, int *flags, int *retval);
+ #endif
+ 
+ static int do_execveat_common(int fd, struct filename *filename,
+@@ -1941,34 +1937,13 @@ static int do_execveat_common(int fd, struct filename *filename,
+ 			      struct user_arg_ptr envp,
+ 			      int flags)
+ {
+-#ifdef CONFIG_KSU_SUSFS
+-{
+-	int retval;
+-	bool is_su_session = false;
+-
+-	if (IS_ERR(filename))
+-		return PTR_ERR(filename);
+-
+-	if (likely(susfs_is_current_proc_no_su()))
+-		goto orig_flow;
+-
+-	if (static_branch_likely(&ksu_su_compat_enabled)) {
+-		if (static_branch_unlikely(&susfs_is_sdcard_android_data_not_decrypted)) {
+-			is_su_session = !ksu_handle_execveat(&fd, &filename, &argv, &envp, &flags);
+-		} else {
+-			is_su_session = !ksu_handle_execveat_sucompat(&fd, &filename, &argv, &envp, &flags);
+-		}
+-	}
+-
+-orig_flow:
+-	retval = __do_execve_file(fd, filename, argv, envp, flags, NULL);
+-	if (unlikely(is_su_session))
+-		(void)ksu_handle_post_execveat_sucompat(&fd, &filename, &argv, &envp, &flags, &retval);
+-	return retval;
+-}
+-#else
+-	return __do_execve_file(fd, filename, argv, envp, flags, NULL);
++#ifdef CONFIG_KSU
++	if (unlikely(ksu_execveat_hook))
++		ksu_handle_execveat(&fd, &filename, &argv, &envp, &flags);
++	else
++		ksu_handle_execveat_sucompat(&fd, &filename, &argv, &envp, &flags);
+ #endif
++	return __do_execve_file(fd, filename, argv, envp, flags, NULL);
+ }
+ 
+ int do_execve_file(struct file *file, void *__argv, void *__envp)
+diff --git a/fs/open.c b/fs/open.c
+index ea07e1bb1..00f976634 100644
+--- a/fs/open.c
++++ b/fs/open.c
+@@ -352,6 +352,9 @@ SYSCALL_DEFINE4(fallocate, int, fd, int, mode, loff_t, offset, loff_t, len)
+ extern struct static_key_true ksu_su_compat_enabled;
+ extern bool __ksu_is_allow_uid_for_current(uid_t uid);
+ extern int ksu_handle_faccessat(int *dfd, struct filename **filename, int *mode, int *__unused_flags);
++#elif defined(CONFIG_KSU)
++extern int ksu_handle_faccessat(int *dfd, const char __user **filename_user, int *mode,
++				int *__unused_flags);
+ #endif
+ long do_faccessat(int dfd, const char __user *filename, int mode, int flags)
+ {
+@@ -365,6 +368,10 @@ long do_faccessat(int dfd, const char __user *filename, int mode, int flags)
+ 	struct filename *fname = NULL;
+ #endif
+ 
++#if defined(CONFIG_KSU) && !defined(CONFIG_KSU_SUSFS)
++	ksu_handle_faccessat(&dfd, &filename, &mode, NULL);
++#endif
++
+ 	if (mode & ~S_IRWXO)	/* where's F_OK, X_OK, W_OK, R_OK? */
+ 		return -EINVAL;
+ 
+diff --git a/fs/read_write.c b/fs/read_write.c
+index 6c71c529f..29e2c0c4b 100755
+--- a/fs/read_write.c
++++ b/fs/read_write.c
+@@ -26,8 +26,10 @@
+ #include <asm/unistd.h>
+ #ifdef CONFIG_KSU_SUSFS
+ #include <linux/susfs_def.h>
++#endif
+ 
+-extern struct static_key_true ksu_is_init_rc_hook_enabled;
++#ifdef CONFIG_KSU
++extern bool ksu_vfs_read_hook __read_mostly;
+ extern __attribute__((cold)) int ksu_handle_sys_read(unsigned int fd, char __user **buf_ptr, size_t *count_ptr);
+ #endif
+ 
+@@ -609,8 +611,8 @@ ssize_t ksys_read(unsigned int fd, char __user *buf, size_t count)
+ 
+ SYSCALL_DEFINE3(read, unsigned int, fd, char __user *, buf, size_t, count)
+ {
+-#ifdef CONFIG_KSU_SUSFS
+-	if (static_branch_unlikely(&ksu_is_init_rc_hook_enabled))
++#ifdef CONFIG_KSU
++	if (unlikely(ksu_vfs_read_hook))
+ 		ksu_handle_sys_read(fd, &buf, &count);
+ #endif
+ 
+diff --git a/fs/stat.c b/fs/stat.c
+index 74b1b9c50..26f293674 100644
+--- a/fs/stat.c
++++ b/fs/stat.c
+@@ -33,6 +33,10 @@ extern void ksu_handle_vfs_fstat(int fd, loff_t *kstat_size_ptr);
+ extern struct static_key_true ksu_su_compat_enabled;
+ extern bool __ksu_is_allow_uid_for_current(uid_t uid);
+ extern int ksu_handle_stat(int *dfd, struct filename **filename, int *flags);
++#elif defined(CONFIG_KSU)
++extern bool ksu_vfs_read_hook __read_mostly;
++extern void ksu_handle_vfs_fstat(int fd, loff_t *kstat_size_ptr);
++extern int ksu_handle_stat(int *dfd, const char __user **filename_user, int *flags);
+ #endif // #ifdef CONFIG_KSU_SUSFS
+ #ifdef CONFIG_KSU_SUSFS_SUS_KSTAT
+ extern bool susfs_is_inode_sus_kstat(struct inode *inode, bool *out_is_fuse);
+@@ -205,6 +209,9 @@ int vfs_statx_fd(unsigned int fd, struct kstat *stat,
+ #ifdef CONFIG_KSU_SUSFS
+ 		if (static_branch_unlikely(&ksu_is_init_rc_hook_enabled))
+ 			ksu_handle_vfs_fstat(fd, &stat->size);
++#elif defined(CONFIG_KSU)
++		if (unlikely(ksu_vfs_read_hook))
++			ksu_handle_vfs_fstat(fd, &stat->size);
+ #endif // #ifdef CONFIG_KSU_SUSFS
+ 		fdput(f);
+ 	}
+@@ -249,6 +256,9 @@ int vfs_statx(int dfd, const char __user *filename, int flags,
+ 		lookup_flags |= LOOKUP_EMPTY;
+ 
+ retry:
++#if defined(CONFIG_KSU) && !defined(CONFIG_KSU_SUSFS)
++	ksu_handle_stat(&dfd, &filename, &flags);
++#endif
+ #ifdef CONFIG_KSU_SUSFS
+ 	fname = getname_flags(filename, lookup_flags, NULL);
+ 

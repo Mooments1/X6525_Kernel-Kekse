@@ -1,0 +1,11 @@
+# Release bundle ignores
+/out/
+/logs/
+/work/
+/apps/
+/*.img
+/*.tar.gz
+/*.apk
+/*.zip
+
+# Keep release scripts, patches, docs and source.
