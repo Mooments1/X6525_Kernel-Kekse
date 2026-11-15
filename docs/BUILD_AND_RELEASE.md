@@ -15,11 +15,9 @@
 ```bash
 ./build-susfs.sh config
 ./build-susfs.sh image
-STOCK=/path/to/stock_boot.img ./build-susfs.sh repack
 ```
 
-Result: `boot-image/SUKISU-Kekse-SUSFS-KPM.img` (64MiB AVB layout, header v4,
-OS 13.0.0 / patch level 2025-10) with kernel version `5.4.302-kekse+`.
+Result: `out-susfs/arch/arm64/boot/Image` with kernel version `5.4.302-kekse+`.
 
 `build.sh` is the smaller source-only build without SUSFS/KPM.
 

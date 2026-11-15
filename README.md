@@ -20,7 +20,6 @@ bundled in `src/drivers/kernelsu`, together with SUSFS and KPM support.
 ```txt
 ./build-susfs.sh config
 ./build-susfs.sh image
-STOCK=/path/to/stock_boot.img ./build-susfs.sh repack
 ```
 
 Kernel version: `5.4.302-kekse+`.
