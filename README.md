@@ -12,7 +12,7 @@ bundled in `src/drivers/kernelsu`, together with SUSFS and KPM support.
 - `src/` kernel source
 - `patches/` upstream pins and kernel-side changes
 - `build.sh`, `build-susfs.sh` build scripts
-- `repack_boot.py`, `postprocess_avb.py`, `verify.sh` boot image tools
+- `repack_boot.py`, `postprocess_avb.py` boot image tools
 - `docs/BUILD_AND_RELEASE.md` build and release instructions
 
 ## Building
