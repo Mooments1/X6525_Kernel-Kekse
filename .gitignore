@@ -1,11 +1,18 @@
-# Release bundle ignores
+# Build and release artifacts
 /out/
+/out-susfs/
 /logs/
+/logs-susfs/
 /work/
 /apps/
+/toolchain/
+/boot-image/
 /*.img
 /*.tar.gz
 /*.apk
 /*.zip
+*.o
+*.ko
+__pycache__/
 
 # Keep release scripts, patches, docs and source.

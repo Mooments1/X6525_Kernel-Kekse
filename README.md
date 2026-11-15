@@ -1,21 +1,30 @@
 # Kernel-Kekse
 
-This is the X6525 / Infinix Smart 8 UMS9230 SukiSU kernel release, configured for
-the optimized and monolithic LTO build.
+X6525 / Infinix Smart 8 UMS9230 SukiSU kernel source, configured for the
+optimized and monolithic LTO build.
 
-The kernel source is derived from the community transsion UMS9230 tree. SukiSU sources are intentionally not bundled in this repository; apply the compatibility patch and upstream pin before building.
-
-## Key artifact
-
-- `boot-image/SUKISU-Kekse.img`
-- `SHA-256`: `7c6199a99552ade128197ac1992e16e8baa59b17e3d2eb5ab648501dd7286bf3`
-- version: `5.4.302-kekse+`
+The kernel source is derived from the community transsion UMS9230 tree. SukiSU
+Ultra (builtin branch, pinned in `patches/sukisu-builtin-upstream.sha`) is
+bundled in `src/drivers/kernelsu`, together with SUSFS and KPM support.
 
 ## Source layout
 
-- `src/` kernel source (without embedded SukiSU source; integrate externally)
-- `patches/` kernel-side changes to apply
-- `build.sh`, `postprocess_avb.py`, `verify.sh`
-- `boot-image/SHA256SUMS`
-- documentation: `README.md`, `NOTES.md`, `docs/BUILD_AND_RELEASE.md`,
-  `RELEASE_NOTES.md`
+- `src/` kernel source
+- `patches/` upstream pins and kernel-side changes
+- `build.sh`, `build-susfs.sh` build scripts
+- `repack_boot.py`, `postprocess_avb.py`, `verify.sh` boot image tools
+- `docs/BUILD_AND_RELEASE.md` build and release instructions
+
+## Building
+
+```txt
+./build-susfs.sh config
+./build-susfs.sh image
+STOCK=/path/to/stock_boot.img ./build-susfs.sh repack
+```
+
+Kernel version: `5.4.302-kekse+`.
+
+Build outputs, toolchains and boot images are intentionally not committed. The
+flashable boot image is built locally from a stock boot image and attached to a
+GitHub release when needed.

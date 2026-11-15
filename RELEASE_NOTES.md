@@ -1,11 +1,10 @@
 # X6525 / Infinix Smart 8 - SukiSU kernel release
 
 Version: 5.4.302-kekse+
-Boot image SHA-256: 7c6199a99552ade128197ac1992e16e8baa59b17e3d2eb5ab648501dd7286bf3
 
-This is an unofficial community kernel built from the Bocchi-The-Dev kernel fork with
-SukiSU Ultra integrated. Build requires
-an external SukiSU builtin checkout pinned at:
+This is an unofficial community kernel built from the Bocchi-The-Dev kernel fork
+with SukiSU Ultra, SUSFS and KPM integrated. SukiSU sources live in
+`src/drivers/kernelsu` and are pinned at:
 
 - repo: SukiSU-Ultra/SukiSU-Ultra
 - branch: builtin
@@ -19,15 +18,15 @@ Compile-time optimizations actually applied:
 - CONFIG_CFI_CLANG=y + CONFIG_CFI_CLANG_SHADOW=y
 - stock module compatibility patch: vermagic/CRC mismatches become warnings
 
-Known-good device flashing:
-  fastboot flash boot boot-image/SUKISU-Kekse.img (64MiB image)
+Boot images are build artifacts and are not stored in this repository. Build one
+locally with `build-susfs.sh` from a stock boot image, then flash it:
 
-The matching SukiSU manager used for this release is external and must be installed
-separately. Keep the stock boot image outside the repository to avoid bloating commits.
+  fastboot flash boot boot-image/SUKISU-Kekse-SUSFS-KPM.img (64MiB image)
+
+The matching SukiSU manager is external and must be installed separately.
 
 Updating this release:
 1. pull/update source on main and bump CONFIG_LOCALVERSION
 2. repeat build + repack commands, KEEP the same toolchain
-3. update SHA256SUMS and a release notes diff
-4. create a new tag (v5.4.302-kekse.N+1), do not recycle old ones
-5. push main + tags, then upload the new image to that release
+3. create a new tag (v5.4.302-kekse.N+1), do not recycle old ones
+4. push main + tags, then upload the new image as a release asset
